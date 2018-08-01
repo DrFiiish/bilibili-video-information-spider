@@ -92,7 +92,7 @@ def save():
 if __name__ == "__main__":
     create()
     time0 = time.time()
-    for i in range(0, 2000):
+    for i in range(0, 2700):
         begin = 10000*i
         urls = ["http://api.bilibili.com/archive_stat/stat?aid={}".format(j)
                 for j in range(begin, begin+10000)]
