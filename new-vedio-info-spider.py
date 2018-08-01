@@ -1,32 +1,40 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
-Created on Sat Mar  3 17:48:23 2018
+Created on Tue Jul 31 16:58:51 2018
 
 @author: peter
 """
-import threading
+
 import time
 import sqlite3
 import requests
-from concurrent import futures
+import asyncio
+total = 1
+result = []
+flag = None
+conn = None
 
-headers = {
+head = {
     'X-Requested-With': 'XMLHttpRequest',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36'
                   '(KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'
 }
-total = 1
-result = []
-lock = threading.Lock()
-flag = None
-conn = None
 
 
-def run(url):
+async def request(url):
+    future = loop.run_in_executor(
+        None, requests.get, url, head)
+    response = await future
+    response.encoding = response.apparent_encoding
+    demo = response.text
+    return demo
+
+
+async def run(url):
     # 启动爬虫
     global total
-    req = requests.get(url, headers=headers, timeout=6).json()
-    time.sleep(0.4)     # 延迟，避免太快 ip 被封
+    req = await request(url)
+    req = eval(req)
     try:
         data = req['data']
         video = (
@@ -39,13 +47,12 @@ def run(url):
             data['coin'],       # 硬币数
             data['share']       # 分享数
         )
-        with lock:
-            result.append(video)
-            if total % 250 == 0:
-                global time0
-                time1 = time.time()
-                print("爬取{0}个网页 ，总花费时间:{1:.2f}s".format(
-                    total, time1-time0))
+        result.append(video)
+        if total % 250 == 0:
+            global time0
+            time1 = time.time()
+            print("爬取{0}个网页 ，总花费时间:{1:.2f}s".format(
+                total, time1-time0))
         total += 1
     except:
         pass
@@ -54,7 +61,7 @@ def run(url):
 def create():
     # 创建数据库
     global conn
-    conn = sqlite3.connect('data.db')
+    conn = sqlite3.connect('video-data.db')
     conn.execute("""create table if not exists data
                     (id int prinmary key autocrement,
                     aid int,
@@ -64,9 +71,6 @@ def create():
                     favorite int,
                     coin int,
                     share int)""")
-    conn.execute("""insert into data
-                    (id,aid,view,danmaku,reply,favorite,coin,share)    
-                    values(0,0,0,0,0,0,0,0)""")
 
 
 def save():
@@ -88,13 +92,16 @@ def save():
 if __name__ == "__main__":
     create()
     time0 = time.time()
-    for i in range(0, 1981):
+    for i in range(0, 2000):
         begin = 10000*i
         urls = ["http://api.bilibili.com/archive_stat/stat?aid={}".format(j)
                 for j in range(begin, begin+10000)]
-        with futures.ThreadPoolExecutor(32) as executor:
-            executor.map(run, urls)
+        tasks = [asyncio.ensure_future(run(url)) for url in urls]
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.wait(tasks))
+        loop.close()
         save()
     if flag != None:
         print(flag)
+        flag = None
     conn.close()
