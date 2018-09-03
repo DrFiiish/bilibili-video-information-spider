@@ -26,7 +26,7 @@ async def request(url):
         None, requests.get, url, head)
     response = await future
     response.encoding = response.apparent_encoding
-    demo = response.text
+    demo = response.text.replace('null','None')
     return demo
 
 
@@ -99,7 +99,6 @@ if __name__ == "__main__":
         tasks = [asyncio.ensure_future(run(url)) for url in urls]
         loop = asyncio.get_event_loop()
         loop.run_until_complete(asyncio.wait(tasks))
-        loop.close()
         save()
     if flag != None:
         print(flag)
