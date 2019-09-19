@@ -1,7 +1,6 @@
 # B站视频信息(av号，播放量，弹幕数，硬币数，分享量，评论数，收藏数)爬虫
 ## 本项目最后更新于2018-6-4，可能会因为没有更新而失效。如已失效或需要修正，请提issue！
-## 相关文章:[B站用户信息爬虫](https://github.com/zhang0peter/bilibili-user-information-spider)  
-## 在写这个项目时，我还不会Python的协程编程，用协程可提升爬虫速度至少4倍，参考我的文章[线程，协程对比和Python爬虫实战说明](https://github.com/zhang0peter/python-coroutine)
+
 ## 声明
 * 代码、教程均为本人原创，且仅限于学习交流，请勿用于任何商业用途！   
 
