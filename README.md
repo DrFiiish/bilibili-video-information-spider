@@ -16,7 +16,7 @@ pip install requests
 ```
 
 直接刷新视频页面来获取视频信息太慢，通过api地址能快速获取视频信息。</br>
-如：https://api.bilibili.com/x/web-interface/archive/stat?aid=19801429，</br>
+如：https://api.bilibili.com/x/web-interface/archive/stat?aid=19801429</br>
 在浏览器中打开这个页面，可以获取json格式的数据：</br>
 ```javascript
 {
@@ -37,7 +37,7 @@ pip install requests
     "copyright":2}
 }
 ```
-使用requests库获取数据，用concurrent.futures的多线程来加快爬取的速度，我采用的是32线程爬取。</br>
+使用requests库获取数据，可以使用多线程爬虫进行加速，我没有使用，减轻B站服务器压力。</br>
 
 ## 数据获取
 B站对爬虫采取的是一旦发现，就封ip半小时到1天不等的时间。</br>
