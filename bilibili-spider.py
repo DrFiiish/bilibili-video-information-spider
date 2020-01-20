@@ -4,51 +4,57 @@ Created on Sat Mar  3 17:48:23 2018
 
 @author: peter
 """
-import threading
 import time
 import sqlite3
 import requests
-from concurrent import futures
+import logging
+import sys
 
+logging.basicConfig(level=logging.INFO,
+                    handlers=[logging.FileHandler(filename='bilibili-spider.log', mode='a', encoding='utf-8'),
+                              logging.StreamHandler(sys.stdout)],
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 headers = {
     'X-Requested-With': 'XMLHttpRequest',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36'
-                  '(KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'
+    'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36'
+                   '(KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36')
 }
 total = 1
-result = []
-lock = threading.Lock()
-flag = None
 conn = None
 
 
 def run(url):
     # 启动爬虫
     global total
+    result = []
     req = requests.get(url, headers=headers, timeout=6).json()
-    time.sleep(0.4)     # 延迟，避免太快 ip 被封
+    time.sleep(0.1)  # 延迟，避免太快 ip 被封
     try:
+        if req['code'] != 0:
+            #           print("视频不存在")
+            return
         data = req['data']
         video = (
             total,
-            data['aid'],        # 视频编号
-            data['view'],       # 播放量
-            data['danmaku'],    # 弹幕数
-            data['reply'],      # 评论数
-            data['favorite'],   # 收藏数
-            data['coin'],       # 硬币数
-            data['share']       # 分享数
+            data['aid'],  # 视频编号
+            data['view'],  # 播放量
+            data['danmaku'],  # 弹幕数
+            data['reply'],  # 评论数
+            data['favorite'],  # 收藏数
+            data['coin'],  # 硬币数
+            data['share']  # 分享数
         )
-        with lock:
-            result.append(video)
-            if total % 250 == 0:
-                global time0
-                time1 = time.time()
-                print("爬取{0}个网页 ，总花费时间:{1:.2f}s".format(
-                    total, time1-time0))
+        result.append(video)
+        if total % 10 == 0:
+            global time0
+            time1 = time.time()
+            logging.info("爬取{0}个非404网页 ，总花费时间:{1:.2f}s".format(
+                total, time1 - time0))
         total += 1
-    except:
-        pass
+        save(result)
+    except Exception as e:
+        logging.error(e)
 
 
 def create():
@@ -69,32 +75,26 @@ def create():
                     values(0,0,0,0,0,0,0,0)""")
 
 
-def save():
+def save(result=[]):
     # 将数据保存至本地
-    global result, conn, flag, total
+    global conn, total
     command = "insert into data \
              values(?,?,?,?,?,?,?,?);"
     for row in result:
         try:
             conn.execute(command, row)
-        except:
+        except Exception as e:
             conn.rollback()
-            flag = "error has occurred when total is "+str(total)
-            pass
+            logging.error("error has occurred when result is " + str(row))
+            logging.error("error is " + str(e))
     conn.commit()
-    result = []
 
 
 if __name__ == "__main__":
     create()
     time0 = time.time()
-    for i in range(0, 1981):
-        begin = 10000*i
-        urls = ["http://api.bilibili.com/archive_stat/stat?aid={}".format(j)
-                for j in range(begin, begin+10000)]
-        with futures.ThreadPoolExecutor(32) as executor:
-            executor.map(run, urls)
-        save()
-    if flag != None:
-        print(flag)
+    for i in range(1, 1981 * 10000):
+        begin = 10000 * i
+        url = "https://api.bilibili.com/archive_stat/stat?aid=" + str(i)
+        run(url)
     conn.close()
